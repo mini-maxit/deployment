@@ -1,0 +1,78 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:15672"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  file-storage:
+    build: ./repositories/file-storage
+    ports:
+      - "8888:8888"
+    environment:
+      - APP_PORT=8888
+  backend:
+    build: ./repositories/backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - rabbitmq
+      - file-storage
+      - db
+    environment:
+      - QUEUE_HOST=rabbitmq
+      - QUEUE_PORT=5672
+      - QUEUE_USER=guest
+      - QUEUE_PASSWORD=guest
+      - APP_PORT=8000
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - DB_NAME=maxit
+      - FILE_STORAGE_HOST=file-storage
+      - FILE_STORAGE_PORT=8888
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  db:
+    image: postgres:17
+    ports:
+      - "5431:5432"
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: maxit
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  worker:
+    build: ./repositories/worker
+    depends_on:
+      - rabbitmq
+      - db
+      - backend
+      - file-storage
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+  frontend:
+    build: ./repositories/frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
