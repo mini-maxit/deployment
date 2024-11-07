@@ -42,7 +42,7 @@ services:
       timeout: 10s
       retries: 5
   db:
-    image: postgres:17
+    image: postgres:16.4
     ports:
       - "5431:5432"
     environment:
@@ -53,6 +53,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+    # volumes:
+    #   - ./init.sql:/docker-entrypoint-initdb.d/init.sql
   worker:
     build: ./repositories/worker
     depends_on:
@@ -71,6 +73,7 @@ services:
       - "3000:3000"
     depends_on:
       - backend
+      - file-storage
     environment:
       - DATABASE_URL=postgres://postgres:password@db:5432/maxit/
       - FILESTORAGE_URL=http://file-storage:8888
