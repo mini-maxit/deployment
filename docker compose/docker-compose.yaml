@@ -1,3 +1,4 @@
+name: maxit
 services:
   rabbitmq:
     image: rabbitmq:3.13-management
@@ -71,6 +72,12 @@ services:
       - "3000:3000"
     depends_on:
       - backend
+    environment:
+      - DATABASE_URL=postgres://postgres:password@db:5432/maxit
+      - FILESTORAGE_URL=http://file-storage:8888
+      - BACKEND_URL=http://backend:8000
+      - ORIGIN=http://localhost:3000
+
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 30s
