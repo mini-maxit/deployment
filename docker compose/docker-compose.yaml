@@ -11,13 +11,13 @@ services:
       timeout: 10s
       retries: 5
   file-storage:
-    build: ./repositories/file-storage
+    image: seber/maxit-file-storage:latest
     ports:
       - "8888:8888"
     environment:
       - APP_PORT=8888
   backend:
-    build: ./repositories/backend
+    image: seber/maxit-backend:latest
     ports:
       - "8000:8000"
     depends_on:
@@ -55,7 +55,7 @@ services:
       timeout: 10s
       retries: 5
   worker:
-    build: ./repositories/worker
+    image: seber/maxit-worker:latest
     depends_on:
       - rabbitmq
       - db
@@ -67,7 +67,7 @@ services:
       - RABBITMQ_USER=guest
       - RABBITMQ_PASSWORD=guest
   frontend:
-    build: ./repositories/frontend
+    image: seber/maxit-frontend:latest
     ports:
       - "3000:3000"
     depends_on:
