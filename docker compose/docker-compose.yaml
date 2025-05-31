@@ -37,6 +37,8 @@ services:
       - DB_NAME=maxit
       - FILE_STORAGE_HOST=file-storage
       - FILE_STORAGE_PORT=8888
+      - JWT_SECRET_KEY=your_jwt_secret_key
+      - DUMP=true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000"]
       interval: 30s
@@ -63,9 +65,16 @@ services:
       - file-storage
     environment:
       - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
       - RABBITMQ_USER=guest
       - RABBITMQ_PASSWORD=guest
+      - RABBITMQ_PORT=5672
+      - FILESTORAGE_HOST=file-storage
+      - FILESTORAGE_PORT=8888
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - JOBS_DATA_VOLUME=maxit_worker_jobs-data
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - worker_jobs-data:/tmp
   frontend:
     image: seber/maxit-frontend:latest
     ports:
@@ -83,3 +92,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+
+volumes:
+  worker_jobs-data:
