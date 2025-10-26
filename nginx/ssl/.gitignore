@@ -1,0 +1,10 @@
+# Ignore all SSL certificate files to prevent committing private keys
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+
+# Keep the README file
+!README.md

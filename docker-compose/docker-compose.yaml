@@ -1,30 +1,30 @@
 name: maxit
 services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+    restart: unless-stopped
   rabbitmq:
     image: rabbitmq:3.13-management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:15672"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
   file-storage:
     image: seber/maxit-file-storage:latest
-    ports:
-      - "8888:8888"
     environment:
       - APP_PORT=8888
   backend:
-    image: seber/maxit-backend:latest
-    ports:
-      - "8000:8000"
+    image: maxit/backend:latest
     depends_on:
       - rabbitmq
       - file-storage
       - db
     environment:
+      - JWT_SECRET_KEY=
       - QUEUE_HOST=rabbitmq
       - QUEUE_PORT=5672
       - QUEUE_USER=guest
@@ -37,15 +37,8 @@ services:
       - DB_NAME=maxit
       - FILE_STORAGE_HOST=file-storage
       - FILE_STORAGE_PORT=8888
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
   db:
     image: postgres:17
-    ports:
-      - "5431:5432"
     environment:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: maxit
@@ -54,6 +47,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+    volumes:
+      - pgdata:/var/lib/postgresql/data
   worker:
     image: seber/maxit-worker:latest
     depends_on:
@@ -61,25 +56,38 @@ services:
       - db
       - backend
       - file-storage
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - jobs-data:/tmp
     environment:
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=guest
       - RABBITMQ_PASSWORD=guest
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - JOBS_DATA_VOLUME=jobs-data
+      - RESPONSE_QUEUE_NAME=worker_response_queue
+      - WORKER_QUEUE_NAME=worker_queue
   frontend:
-    image: seber/maxit-frontend:latest
-    ports:
-      - "3000:3000"
+    image: maxit/frontend:latest
     depends_on:
       - backend
     environment:
-      - DATABASE_URL=postgres://postgres:password@db:5432/maxit
-      - FILESTORAGE_URL=http://file-storage:8888
-      - BACKEND_URL=http://backend:8000
-      - ORIGIN=http://localhost:3000
-
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+      - BACKEND_URL=http://backend:8000/api/v1
+      - ORIGIN=https://mini-maxit.pl
+    expose:
+      - "3000"
+volumes:
+  file-storage-media:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./volumes/file-storage-media
+  jobs-data:
+  pgdata:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./volumes/pgdata
