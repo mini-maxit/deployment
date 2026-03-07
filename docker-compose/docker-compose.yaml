@@ -18,6 +18,7 @@ services:
     environment:
       - APP_PORT=8888
       - SIGNING_SECRET=
+      - INTERNAL_API_KEY=
       - ROOT_DIRECTORY=/data
     volumes:
       - file-storage-media:/data
@@ -74,6 +75,7 @@ services:
       - JOBS_DATA_VOLUME=maxit_jobs-data # watch out for prefix "maxit_" the same as compose name
       - RESPONSE_QUEUE_NAME=worker_response_queue
       - WORKER_QUEUE_NAME=worker_queue
+      - STORAGE_INTERNAL_KEY=
   frontend:
     image: maxit/frontend:latest
     depends_on:
