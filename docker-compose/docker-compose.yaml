@@ -17,6 +17,10 @@ services:
     image: seber/maxit-file-storage:latest
     environment:
       - APP_PORT=8888
+      - SIGNING_SECRET=
+      - ROOT_DIRECTORY=/data
+    volumes:
+      - file-storage-media:/data
   backend:
     image: maxit/backend:latest
     depends_on:
@@ -37,6 +41,8 @@ services:
       - DB_NAME=maxit
       - FILE_STORAGE_HOST=file-storage
       - FILE_STORAGE_PORT=8888
+      - FILE_STORAGE_PUBLIC_URL=https://mini-maxit.pl
+      - SIGNED_URL_SECRET_KEY=
   db:
     image: postgres:17
     environment:
