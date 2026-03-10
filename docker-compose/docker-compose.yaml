@@ -10,17 +10,19 @@ services:
       - ../nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       - frontend
+      - backend
+      - file-storage
     restart: unless-stopped
   rabbitmq:
     image: rabbitmq:3.13-management
   file-storage:
     image: seber/maxit-file-storage:latest
     ports:
-      - "8888:8080"  # public server (for signed URL access)
-      - "8081:8081"  # internal server (for backend/worker)
+      - "8888:8888"  # public server (for signed URL access)
+      - "8080:8080"  # internal server (for backend/worker)
     environment:
-      - APP_PORT=8080
-      - INTERNAL_PORT=8081
+      - APP_PORT=8888
+      - INTERNAL_PORT=8080
       - ROOT_DIRECTORY=/data
     volumes:
       - file-storage-media:/data
@@ -43,7 +45,7 @@ services:
       - DB_PASSWORD=password
       - DB_NAME=maxit
       - FILE_STORAGE_HOST=file-storage
-      - FILE_STORAGE_PORT=8081
+      - FILE_STORAGE_PORT=8080
       - FILE_STORAGE_PUBLIC_URL=https://mini-maxit.pl/files
   db:
     image: postgres:17
@@ -77,14 +79,15 @@ services:
       - RESPONSE_QUEUE_NAME=worker_response_queue
       - WORKER_QUEUE_NAME=worker_queue
       - STORAGE_HOST=file-storage
-      - STORAGE_PORT=8081
+      - STORAGE_PORT=8080
   frontend:
     image: maxit/frontend:latest
     depends_on:
       - backend
     environment:
-      - BACKEND_URL=http://backend:8000/api/v1
+      - PUBLIC_BACKEND_API_URL=https://mini-maxit.pl/api/v1
       - ORIGIN=https://mini-maxit.pl
+      - BODY_SIZE_LIMIT=20M
     expose:
       - "3000"
 volumes:
