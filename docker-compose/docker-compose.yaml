@@ -17,11 +17,10 @@ services:
     image: seber/maxit-file-storage:latest
     ports:
       - "8888:8080"  # public server (for signed URL access)
-      - "8889:8081"  # internal server (for backend/worker)
+      - "8081:8081"  # internal server (for backend/worker)
     environment:
       - APP_PORT=8080
       - INTERNAL_PORT=8081
-      - SIGNING_SECRET=
       - ROOT_DIRECTORY=/data
     volumes:
       - file-storage-media:/data
@@ -44,7 +43,7 @@ services:
       - DB_PASSWORD=password
       - DB_NAME=maxit
       - FILE_STORAGE_HOST=file-storage
-      - FILE_STORAGE_PORT=8889
+      - FILE_STORAGE_PORT=8081
       - FILE_STORAGE_PUBLIC_URL=https://mini-maxit.pl/files
   db:
     image: postgres:17
@@ -78,7 +77,7 @@ services:
       - RESPONSE_QUEUE_NAME=worker_response_queue
       - WORKER_QUEUE_NAME=worker_queue
       - STORAGE_HOST=file-storage
-      - STORAGE_PORT=8889
+      - STORAGE_PORT=8081
   frontend:
     image: maxit/frontend:latest
     depends_on:
