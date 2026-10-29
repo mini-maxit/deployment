@@ -1,0 +1,118 @@
+# Maxit swarm stack — single-node Docker Desktop (e2e verification).
+# Deploy: BASE_URL=<domain> envsubst '${BASE_URL}' < maxit-stack.yaml | docker stack deploy -c - maxit
+#
+# Single-node-only: nginx config is a host-path bind mount.
+version: "3.8"
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /Users/filipshramko/projects/maxit/deployment/nginx/conf/nginx.swarm-e2e.conf:/etc/nginx/nginx.conf:ro
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+
+  file-storage:
+    image: seber/maxit-file-storage:latest
+    environment:
+      - PUBLIC_SERVER_PORT=8888
+      - INTERNAL_SERVER_PORT=8080
+      - SIGNING_SECRET=maxit-e2e-signing-secret
+      - MAX_SIGN_TTL_SECONDS=3600
+      - ROOT_DIRECTORY=/data
+    volumes:
+      - file-storage-media:/data
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+
+  backend:
+    image: maxit/backend:latest
+    environment:
+      - JWT_SECRET_KEY=maxit-e2e-jwt-secret
+      - COOKIE_SECURE=true
+      - QUEUE_HOST=rabbitmq
+      - QUEUE_PORT=5672
+      - QUEUE_USER=guest
+      - QUEUE_PASSWORD=guest
+      - APP_PORT=8000
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - DB_NAME=maxit
+      - FILE_STORAGE_HOST=file-storage
+      - FILE_STORAGE_PORT=8080
+      - FILE_STORAGE_PUBLIC_URL=${BASE_URL}/files
+      - CORS_ALLOWED_ORIGINS=${BASE_URL}
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: maxit
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+
+  worker:
+    image: seber/maxit-worker:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - jobs-data:/tmp
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - JOBS_DATA_VOLUME=maxit_jobs-data
+      - RESPONSE_QUEUE_NAME=worker_response_queue
+      - WORKER_QUEUE_NAME=worker_queue
+      - STORAGE_HOST=file-storage
+      - STORAGE_PORT=8080
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+
+  frontend:
+    image: maxit/frontend:latest
+    environment:
+      - PUBLIC_BACKEND_API_URL=${BASE_URL}/api/v1
+      - ORIGIN=${BASE_URL}
+      - BODY_SIZE_LIMIT=20M
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+
+volumes:
+  file-storage-media:
+  jobs-data:
+  pgdata:
