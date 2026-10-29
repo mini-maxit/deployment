@@ -22,7 +22,9 @@ echo "[*] Deploying stack 'maxit' with BASE_URL=$BASE_URL"
 RENDERED=$(mktemp)
 envsubst '${BASE_URL}' < "$STACK_FILE" > "$RENDERED"
 
-docker stack deploy -c "$RENDERED" maxit
+# --resolve-image never: do NOT let the registry's :latest (older published
+# builds under seber/*) override the locally built images.
+docker stack deploy --resolve-image never -c "$RENDERED" maxit
 rm -f "$RENDERED"
 
 echo "[*] Applying database migrations (one-shot atlas container)..."

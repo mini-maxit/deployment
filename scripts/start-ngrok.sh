@@ -26,7 +26,12 @@ for _ in $(seq 1 60); do
     BASE_URL=$(curl -s -m 3 http://localhost:4040/api/tunnels 2>/dev/null \
         | grep -oE '"public_url":"https://[^"]+"' | head -1 | cut -d'"' -f4 || true)
     if [[ -n "$BASE_URL" ]]; then
-        break
+        # Session must actually serve traffic (agent can be up while the session is dead).
+        code=$(curl -s -m 5 -o /dev/null -w '%{http_code}' -H 'ngrok-skip-browser-warning: 1' "$BASE_URL/health" 2>/dev/null || echo 000)
+        if [[ "$code" == "200" ]]; then
+            break
+        fi
+        BASE_URL=""
     fi
     if ! kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
         echo "[ERROR] ngrok exited early. See $DEPLOY_DIR/.ngrok.log" >&2
