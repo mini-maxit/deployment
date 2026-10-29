@@ -25,27 +25,32 @@ if (!BASE_URL) {
   throw new Error('BASE_URL missing: run deployment/scripts/start-ngrok.sh or export BASE_URL');
 }
 
-// Unique per run so re-runs against the same database do not collide.
-const RUN = Date.now().toString(36);
+// Unique per run so re-runs and parallel spec modules never collide
+// (Playwright loads all spec files in one worker process).
+// Keep compact: username max 30 chars (backend MAX_LENGTH_30).
+const RUN = `${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`;
 
 // Password policy (backend/package/utils.PasswordValidator):
 // >=8 chars, upper, lower, digit, special from [#!?@$%^&*-]
 const PASSWORD = 'E2ePass!1x';
-// Username policy (UsernameValidator): ^[a-zA-Z][a-zA-Z0-9_]*$
+// Username policy (UsernameValidator): ^[a-zA-Z][a-zA-Z0-9_]*$, max 30 chars.
 
 function user(role, tag) {
+  // Unique per CALL: Playwright loads every spec file in one worker process,
+  // so per-module RUN alone collides across specs sharing a persona.
+  const nonce = `${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`;
   return {
     name: 'E2e',
     surname: `Test${tag}`,
-    email: `e2e-${tag}-${RUN}@example.com`,
-    username: `e2e_${tag}_${RUN}`,
+    email: `e2e-${tag}-${nonce}@example.com`,
+    username: `e2e_${tag}_${nonce}`,
     password: PASSWORD,
     confirmPassword: PASSWORD,
   };
 }
 
 export const fixtures = {
-  student: () => user('student', 'student'),
-  teacher: () => user('teacher', 'teacher'),
-  admin: () => user('admin', 'admin'),
+  student: () => user('student', 'stu'),
+  teacher: () => user('teacher', 'tea'),
+  admin: () => user('admin', 'adm'),
 };
