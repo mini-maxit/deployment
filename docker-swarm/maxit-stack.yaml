@@ -116,3 +116,9 @@ volumes:
   file-storage-media:
   jobs-data:
   pgdata:
+
+networks:
+  # attachable: one-shot containers (atlas migrations) can join the overlay.
+  default:
+    driver: overlay
+    attachable: true

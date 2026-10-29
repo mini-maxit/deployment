@@ -25,6 +25,24 @@ envsubst '${BASE_URL}' < "$STACK_FILE" > "$RENDERED"
 docker stack deploy -c "$RENDERED" maxit
 rm -f "$RENDERED"
 
+echo "[*] Applying database migrations (one-shot atlas container)..."
+migration_ok=0
+for _ in $(seq 1 15); do
+    if docker run --rm --network maxit_default -w /app maxit/backend:latest \
+        atlas migrate apply --dir "file://migrations" \
+        --url "postgres://postgres:password@db:5432/maxit?sslmode=disable"; then
+        migration_ok=1
+        break
+    fi
+    echo "[*] migration attempt failed, retrying in 4s..."
+    sleep 4
+done
+if [[ $migration_ok -ne 1 ]]; then
+    echo "[ERROR] database migrations failed" >&2
+    exit 1
+fi
+echo "[OK] migrations applied"
+
 echo "[*] Waiting for services (up to 120s)..."
 deadline=$((SECONDS + 120))
 nginx_up=0

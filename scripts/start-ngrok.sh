@@ -22,17 +22,21 @@ else
 fi
 
 BASE_URL=""
-for _ in $(seq 1 30); do
-    BASE_URL=$(curl -s http://localhost:4040/api/tunnels 2>/dev/null \
+for _ in $(seq 1 60); do
+    BASE_URL=$(curl -s -m 3 http://localhost:4040/api/tunnels 2>/dev/null \
         | grep -oE '"public_url":"https://[^"]+"' | head -1 | cut -d'"' -f4 || true)
     if [[ -n "$BASE_URL" ]]; then
         break
     fi
-    sleep 1
+    if ! kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+        echo "[ERROR] ngrok exited early. See $DEPLOY_DIR/.ngrok.log" >&2
+        exit 1
+    fi
+    sleep 2
 done
 
 if [[ -z "$BASE_URL" ]]; then
-    echo "[ERROR] ngrok tunnel did not come up within 30s. See $DEPLOY_DIR/.ngrok.log" >&2
+    echo "[ERROR] ngrok tunnel did not come up within 120s. See $DEPLOY_DIR/.ngrok.log" >&2
     exit 1
 fi
 
