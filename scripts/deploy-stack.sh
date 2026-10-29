@@ -56,7 +56,9 @@ while (( SECONDS < deadline )); do
     fi
     if [[ $backend_up -eq 0 ]]; then
         code=$(curl -sS -m 5 -o /dev/null -w '%{http_code}' "$BASE_URL/api/v1/status" 2>/dev/null || echo 000)
-        if [[ "$code" != "000" ]]; then
+        # Only real responses count: nginx 502/504 from a crash-looping backend
+        # must not pass the gate.
+        if [[ "$code" =~ ^[234][0-9][0-9]$ ]]; then
             backend_up=1
             echo "[OK] backend reachable (HTTP $code from /api/v1/status)"
         fi

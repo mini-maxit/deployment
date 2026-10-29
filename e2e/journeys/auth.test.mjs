@@ -24,6 +24,10 @@ test('register returns 201 with access token and secure HttpOnly refresh cookie'
   assert.ok(refresh, 'refresh_token cookie is set');
   assert.match(refresh, /HttpOnly/i);
   assert.match(refresh, /Secure/i);
+  // Review Focus #4: scoped path + strict same-site must hold or browser
+  // session renewal silently dies.
+  assert.match(refresh, /SameSite=Strict/i);
+  assert.match(refresh, /Path=\/api\/v1\/auth\/refresh/i);
   accessToken = body.data.accessToken;
 });
 

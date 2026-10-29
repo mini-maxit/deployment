@@ -49,6 +49,7 @@ Tests live in `deployment/e2e/` (API: `node --test journeys/`, UI: `npx playwrig
 | T7 Delete task | J2 delete + gone from list | ✅ |
 | T8 Edit contest | J2 extend end time + UI editor dialog | ✅ |
 | T9 Delete contest | J2 delete | ✅ |
+| T12, T13 | **Not defined** — the thesis requirements table lists T1–T11 and T14 only (numbering gap at the source); nothing to verify | n/a |
 | A1 Monitor system health | J4 `/workers/status`, `/workers/queue/status` | ✅ |
 | A2 Manage roles | J4 promote/demote via PATCH `/users/{id}` | ✅ |
 | Auth lifecycle | J1 register→login→me→refresh→password→logout, stale-cookie rejection, duplicate rejection | ✅ |
@@ -58,6 +59,16 @@ Tests live in `deployment/e2e/` (API: `node --test journeys/`, UI: `npx playwrig
 **Final results: API journeys 35/35 ✅ · UI journeys 4/4 ✅ · localhost leak audit 3/3 ✅**
 
 *T4 direct-to-user/group task assignment path not exercised (contest assignment is).
+
+### Review Focus → evidence
+
+| Focus risk | Where proven |
+|---|---|
+| RabbitMQ `guest` remote login | Empirically settled: official `rabbitmq:3.13-management` image ships `loopback_users = []`; backend/worker authenticate from overlay IPs (full eval chain green). Prod note: `guest/guest` with administrator tag on the overlay is a secrets item. |
+| `JOBS_DATA_VOLUME` prefix mismatch | Stack sets `maxit_jobs-data` = `<stack>_<volume>`; J3's Docker-eval assertion is the test that fails if the mount breaks. |
+| Signed URL host leakage/fallback | J3 asserts every returned URL starts with `$BASE_URL/files/` **and** fetches one through the domain (200). |
+| Refresh-cookie flow over HTTPS | J1 asserts `Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/api/v1/auth/refresh` on the cookie, then exercises refresh + stale-cookie-after-logout rejection. |
+| nginx `/files/` rewrite vs signature binding | J3 signed download through the domain returns 200 (rewrite strips exactly `/files`, signature path intact). |
 
 ---
 

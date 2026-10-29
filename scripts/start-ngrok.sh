@@ -25,14 +25,7 @@ BASE_URL=""
 for _ in $(seq 1 60); do
     BASE_URL=$(curl -s -m 3 http://localhost:4040/api/tunnels 2>/dev/null \
         | grep -oE '"public_url":"https://[^"]+"' | head -1 | cut -d'"' -f4 || true)
-    if [[ -n "$BASE_URL" ]]; then
-        # Session must actually serve traffic (agent can be up while the session is dead).
-        code=$(curl -s -m 5 -o /dev/null -w '%{http_code}' -H 'ngrok-skip-browser-warning: 1' "$BASE_URL/health" 2>/dev/null || echo 000)
-        if [[ "$code" == "200" ]]; then
-            break
-        fi
-        BASE_URL=""
-    fi
+    [[ -n "$BASE_URL" ]] && break
     if ! kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
         echo "[ERROR] ngrok exited early. See $DEPLOY_DIR/.ngrok.log" >&2
         exit 1
@@ -52,3 +45,10 @@ mv "$ENV_FILE.tmp" "$ENV_FILE"
 echo "BASE_URL=$BASE_URL" >> "$ENV_FILE"
 
 echo "[OK] BASE_URL=$BASE_URL"
+
+# Advisory only: the stack may not be deployed yet when this runs (bootstrap
+# order is start-ngrok -> deploy-stack), so a non-200 here is not an error.
+code=$(curl -s -m 5 -o /dev/null -w '%{http_code}' -H 'ngrok-skip-browser-warning: 1' "$BASE_URL/health" 2>/dev/null || echo 000)
+if [[ "$code" != "200" ]]; then
+    echo "[warn] tunnel not serving /health yet (HTTP $code) — expected before deploy-stack.sh runs"
+fi
