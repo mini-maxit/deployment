@@ -72,6 +72,13 @@ export function createClient(baseUrl) {
         body: formData,
         redirect: 'manual',
       }),
+    patchForm: (path, token, formData) =>
+      fetch(baseUrl + path, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+        redirect: 'manual',
+      }),
 
     getRefreshCookie: () => jar.get('refresh_token'),
   };

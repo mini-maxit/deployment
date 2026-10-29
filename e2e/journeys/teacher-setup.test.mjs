@@ -126,3 +126,31 @@ test('T5/T11: teacher views contest statistics (task-stats, user-stats)', async 
   );
   assert.equal(userStats.status, 200);
 });
+
+test('T6: teacher edits task (title)', async () => {
+  const form = new FormData();
+  form.set('title', `J2 Sum Edited ${Date.now().toString(36)}`);
+  form.set('isVisible', 'true');
+  const res = await client.patchForm(`/api/v1/tasks-management/tasks/${taskId}`, T.token, form);
+  assert.ok(res.status < 300, `edit task: ${res.status}`);
+});
+
+test('T10: teacher edits group (rename)', async () => {
+  const res = await client.put(`/api/v1/groups-management/groups/${groupId}`, T.token, {
+    name: `j2 grp edited ${Date.now().toString(36)}`,
+  });
+  assert.ok(res.status < 300, `edit group: ${res.status}`);
+});
+
+test('T7: teacher deletes task (no further submissions)', async () => {
+  const res = await client.del(`/api/v1/tasks-management/tasks/${taskId}`, T.token);
+  assert.ok(res.status < 300, `delete task: ${res.status}`);
+  const listRes = await client.get('/api/v1/tasks-management/tasks/created', T.token);
+  const items = (await listRes.json()).data.items ?? [];
+  assert.ok(!items.some((t) => t.id === taskId), 'deleted task gone from list');
+});
+
+test('T9: teacher deletes contest', async () => {
+  const res = await client.del(`/api/v1/contests-management/contests/${contestId}`, T.token);
+  assert.ok(res.status < 300, `delete contest: ${res.status}`);
+});

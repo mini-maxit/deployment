@@ -105,6 +105,16 @@ test('U11: student sees own contest results', async () => {
   assert.equal(body.ok, true);
 });
 
+test('U12: contest details (description, window) visible to student', async () => {
+  const res = await client.get(`/api/v1/contests/${world.contestId}`, sToken);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.ok, true);
+  assert.ok(body.data.name, 'contest name present');
+  assert.equal(body.data.description, 'e2e contest');
+  assert.ok(body.data.startAt && body.data.endAt, 'time window present');
+});
+
 test('persist world for leak audit', async () => {
   const poll = await (await client.get(`/api/v1/submissions/${submissionId}`, sToken)).json();
   saveWorld({

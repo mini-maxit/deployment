@@ -71,6 +71,17 @@ test('login with the old password is rejected', async () => {
   assert.equal(res.status, 401);
 });
 
+test('U13: profile edit (name/surname) is applied', async () => {
+  const res = await client.patch(`/api/v1/users/${userId}`, accessToken, {
+    name: 'E2eRenamed',
+    surname: 'Testperson',
+  });
+  assert.ok(res.status < 300, `edit profile: ${res.status}`);
+  const me = await (await client.me(accessToken)).json();
+  assert.equal(me.data.name, 'E2eRenamed');
+  assert.equal(me.data.surname, 'Testperson');
+});
+
 test('logout clears the session and a stale refresh cookie is rejected', async () => {
   const staleCookie = client.getRefreshCookie();
   assert.ok(staleCookie, 'refresh cookie present before logout');
