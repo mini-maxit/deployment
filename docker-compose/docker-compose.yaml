@@ -1,3 +1,6 @@
+# Production compose for maxit (public URL: https://maxit.mini.pw.edu.pl).
+# Usage: cp .env.example .env  (fill secrets), place TLS certs in ../nginx/ssl/
+#        docker compose up -d
 name: maxit
 services:
   nginx:
@@ -15,55 +18,59 @@ services:
     restart: unless-stopped
   rabbitmq:
     image: rabbitmq:3.13-management
+    environment:
+      - RABBITMQ_DEFAULT_USER=${QUEUE_USER}
+      - RABBITMQ_DEFAULT_PASS=${QUEUE_PASSWORD}
   file-storage:
-    image: seber/maxit-file-storage:latest
+    image: ghcr.io/mini-maxit/file-storage:latest
     # No host ports: nginx proxies /files/ -> :8888 and backend/worker reach
     # the internal API :8080 over the compose network. Nothing else may reach it.
     environment:
-      - PUBLIC_SERVER_PORT=8888
-      - INTERNAL_SERVER_PORT=8080
-      - SIGNING_SECRET=CHANGE_ME  # real value delivered separately
-      - MAX_SIGN_TTL_SECONDS=3600
-      - ROOT_DIRECTORY=/data
+      - PUBLIC_SERVER_PORT=${PUBLIC_SERVER_PORT}
+      - INTERNAL_SERVER_PORT=${INTERNAL_SERVER_PORT}
+      - SIGNING_SECRET=${SIGNING_SECRET}
+      - MAX_SIGN_TTL_SECONDS=${MAX_SIGN_TTL_SECONDS}
+      - ROOT_DIRECTORY=${ROOT_DIRECTORY}
     volumes:
       - file-storage-media:/data
   backend:
-    image: maxit/backend:latest
+    image: ghcr.io/mini-maxit/backend:latest
     depends_on:
       - rabbitmq
       - file-storage
       - db
     environment:
-      - JWT_SECRET_KEY=CHANGE_ME  # real value delivered separately (see release notes)
-      - COOKIE_SECURE=true
-      - QUEUE_HOST=rabbitmq
-      - QUEUE_PORT=5672
-      - QUEUE_USER=guest
-      - QUEUE_PASSWORD=guest
-      - APP_PORT=8000
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=password
-      - DB_NAME=maxit
-      - FILE_STORAGE_HOST=file-storage
-      - FILE_STORAGE_PORT=8080
-      - FILE_STORAGE_PUBLIC_URL=https://maxit.mini.pw.edu.pl/files
-      - CORS_ALLOWED_ORIGINS=https://maxit.mini.pw.edu.pl
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - COOKIE_SECURE=${COOKIE_SECURE}
+      - QUEUE_HOST=${QUEUE_HOST}
+      - QUEUE_PORT=${QUEUE_PORT}
+      - QUEUE_USER=${QUEUE_USER}
+      - QUEUE_PASSWORD=${QUEUE_PASSWORD}
+      - APP_PORT=${APP_PORT}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - FILE_STORAGE_HOST=${FILE_STORAGE_HOST}
+      - FILE_STORAGE_PORT=${FILE_STORAGE_PORT}
+      - FILE_STORAGE_PUBLIC_URL=https://${DOMAIN}/files
+      - CORS_ALLOWED_ORIGINS=https://${DOMAIN}
   db:
     image: postgres:17
     environment:
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: maxit
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
+      test: ["CMD", "pg_isready", "-U", "${DB_USER}"]
       interval: 30s
       timeout: 10s
       retries: 5
     volumes:
       - pgdata:/var/lib/postgresql/data
   worker:
-    image: seber/maxit-worker:latest
+    image: ghcr.io/mini-maxit/worker:latest
     depends_on:
       - rabbitmq
       - db
@@ -73,24 +80,24 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - jobs-data:/tmp
     environment:
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
-      - RABBITMQ_USER=guest
-      - RABBITMQ_PASSWORD=guest
-      - DOCKER_HOST=unix:///var/run/docker.sock
-      - JOBS_DATA_VOLUME=maxit_jobs-data # watch out for prefix "maxit_" the same as compose name
-      - RESPONSE_QUEUE_NAME=worker_response_queue
-      - WORKER_QUEUE_NAME=worker_queue
-      - STORAGE_HOST=file-storage
-      - STORAGE_PORT=8080
+      - RABBITMQ_HOST=${QUEUE_HOST}
+      - RABBITMQ_PORT=${QUEUE_PORT}
+      - RABBITMQ_USER=${QUEUE_USER}
+      - RABBITMQ_PASSWORD=${QUEUE_PASSWORD}
+      - DOCKER_HOST=${DOCKER_HOST}
+      - JOBS_DATA_VOLUME=${JOBS_DATA_VOLUME} # must match compose project name prefix ("maxit_")
+      - RESPONSE_QUEUE_NAME=${RESPONSE_QUEUE_NAME}
+      - WORKER_QUEUE_NAME=${WORKER_QUEUE_NAME}
+      - STORAGE_HOST=${FILE_STORAGE_HOST}
+      - STORAGE_PORT=${FILE_STORAGE_PORT}
   frontend:
-    image: maxit/frontend:latest
+    image: ghcr.io/mini-maxit/frontend:latest
     depends_on:
       - backend
     environment:
-      - PUBLIC_BACKEND_API_URL=https://maxit.mini.pw.edu.pl/api/v1
-      - ORIGIN=https://maxit.mini.pw.edu.pl
-      - BODY_SIZE_LIMIT=20M
+      - PUBLIC_BACKEND_API_URL=https://${DOMAIN}/api/v1
+      - ORIGIN=https://${DOMAIN}
+      - BODY_SIZE_LIMIT=${BODY_SIZE_LIMIT}
     expose:
       - "3000"
 volumes:
