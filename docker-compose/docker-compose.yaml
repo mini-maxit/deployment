@@ -21,7 +21,7 @@ services:
       - RABBITMQ_DEFAULT_USER=${QUEUE_USER}
       - RABBITMQ_DEFAULT_PASS=${QUEUE_PASSWORD}
   file-storage:
-    image: ghcr.io/mini-maxit/file-storage:0.6.0
+    image: ghcr.io/mini-maxit/file-storage:latest
     # No host ports: nginx proxies /files/ -> :8888 and backend/worker reach
     # the internal API :8080 over the compose network. Nothing else may reach it.
     environment:
@@ -33,7 +33,7 @@ services:
     volumes:
       - file-storage-media:/data
   backend:
-    image: ghcr.io/mini-maxit/backend:0.51.0
+    image: ghcr.io/mini-maxit/backend:latest
     depends_on:
       - rabbitmq
       - file-storage
@@ -69,7 +69,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
   worker:
-    image: ghcr.io/mini-maxit/worker:0.14.3
+    image: ghcr.io/mini-maxit/worker:latest
     depends_on:
       - rabbitmq
       - db
@@ -90,7 +90,7 @@ services:
       - STORAGE_HOST=${FILE_STORAGE_HOST}
       - STORAGE_PORT=${FILE_STORAGE_PORT}
   frontend:
-    image: ghcr.io/mini-maxit/frontend:1.8.0
+    image: ghcr.io/mini-maxit/frontend:latest
     depends_on:
       - backend
     environment:
