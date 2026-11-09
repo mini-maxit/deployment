@@ -4,7 +4,7 @@
 name: maxit
 services:
   nginx:
-    image: nginx:alpine
+    image: nginx:1.31.8-alpine
     ports:
       - "80:80"
       - "443:443"
@@ -16,12 +16,12 @@ services:
       - file-storage
     restart: unless-stopped
   rabbitmq:
-    image: rabbitmq:3.13-management
+    image: rabbitmq:4.4.0-management
     environment:
       - RABBITMQ_DEFAULT_USER=${QUEUE_USER}
       - RABBITMQ_DEFAULT_PASS=${QUEUE_PASSWORD}
   file-storage:
-    image: ghcr.io/mini-maxit/file-storage:latest
+    image: ghcr.io/mini-maxit/file-storage:0.6.0
     # No host ports: nginx proxies /files/ -> :8888 and backend/worker reach
     # the internal API :8080 over the compose network. Nothing else may reach it.
     environment:
@@ -33,7 +33,7 @@ services:
     volumes:
       - file-storage-media:/data
   backend:
-    image: ghcr.io/mini-maxit/backend:latest
+    image: ghcr.io/mini-maxit/backend:0.51.0
     depends_on:
       - rabbitmq
       - file-storage
@@ -56,7 +56,7 @@ services:
       - FILE_STORAGE_PUBLIC_URL=https://${DOMAIN}/files
       - CORS_ALLOWED_ORIGINS=https://${DOMAIN}
   db:
-    image: postgres:17
+    image: postgres:17.11
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -69,7 +69,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
   worker:
-    image: ghcr.io/mini-maxit/worker:latest
+    image: ghcr.io/mini-maxit/worker:0.14.3
     depends_on:
       - rabbitmq
       - db
@@ -90,7 +90,7 @@ services:
       - STORAGE_HOST=${FILE_STORAGE_HOST}
       - STORAGE_PORT=${FILE_STORAGE_PORT}
   frontend:
-    image: ghcr.io/mini-maxit/frontend:latest
+    image: ghcr.io/mini-maxit/frontend:1.8.0
     depends_on:
       - backend
     environment:
