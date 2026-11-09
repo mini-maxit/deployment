@@ -4,7 +4,7 @@
 name: maxit
 services:
   nginx:
-    image: nginx:alpine
+    image: nginx:1.31.8-alpine
     ports:
       - "80:80"
       - "443:443"
@@ -16,7 +16,7 @@ services:
       - file-storage
     restart: unless-stopped
   rabbitmq:
-    image: rabbitmq:3.13-management
+    image: rabbitmq:4.4.0-management
     environment:
       - RABBITMQ_DEFAULT_USER=${QUEUE_USER}
       - RABBITMQ_DEFAULT_PASS=${QUEUE_PASSWORD}
@@ -56,7 +56,7 @@ services:
       - FILE_STORAGE_PUBLIC_URL=https://${DOMAIN}/files
       - CORS_ALLOWED_ORIGINS=https://${DOMAIN}
   db:
-    image: postgres:17
+    image: postgres:17.11
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
