@@ -17,12 +17,13 @@ services:
     image: rabbitmq:3.13-management
   file-storage:
     image: seber/maxit-file-storage:latest
-    ports:
-      - "8888:8888"  # public server (for signed URL access)
-      - "8080:8080"  # internal server (for backend/worker)
+    # No host ports: nginx proxies /files/ -> :8888 and backend/worker reach
+    # the internal API :8080 over the compose network. Nothing else may reach it.
     environment:
       - PUBLIC_SERVER_PORT=8888
       - INTERNAL_SERVER_PORT=8080
+      - SIGNING_SECRET=CHANGE_ME  # real value delivered separately
+      - MAX_SIGN_TTL_SECONDS=3600
       - ROOT_DIRECTORY=/data
     volumes:
       - file-storage-media:/data
@@ -33,7 +34,7 @@ services:
       - file-storage
       - db
     environment:
-      - JWT_SECRET_KEY=
+      - JWT_SECRET_KEY=CHANGE_ME  # real value delivered separately (see release notes)
       - COOKIE_SECURE=true
       - QUEUE_HOST=rabbitmq
       - QUEUE_PORT=5672
@@ -47,7 +48,8 @@ services:
       - DB_NAME=maxit
       - FILE_STORAGE_HOST=file-storage
       - FILE_STORAGE_PORT=8080
-      - FILE_STORAGE_PUBLIC_URL=https://mini-maxit.pl/files
+      - FILE_STORAGE_PUBLIC_URL=https://maxit.mini.pw.edu.pl/files
+      - CORS_ALLOWED_ORIGINS=https://maxit.mini.pw.edu.pl
   db:
     image: postgres:17
     environment:
@@ -86,8 +88,8 @@ services:
     depends_on:
       - backend
     environment:
-      - PUBLIC_BACKEND_API_URL=https://mini-maxit.pl/api/v1
-      - ORIGIN=https://mini-maxit.pl
+      - PUBLIC_BACKEND_API_URL=https://maxit.mini.pw.edu.pl/api/v1
+      - ORIGIN=https://maxit.mini.pw.edu.pl
       - BODY_SIZE_LIMIT=20M
     expose:
       - "3000"
