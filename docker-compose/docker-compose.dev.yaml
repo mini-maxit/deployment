@@ -13,7 +13,7 @@ services:
       - file-storage
     restart: unless-stopped
   rabbitmq:
-    image: rabbitmq:3.13-management
+    image: rabbitmq:4.4-management
   file-storage:
     image: ghcr.io/mini-maxit/file-storage:latest
     environment:
