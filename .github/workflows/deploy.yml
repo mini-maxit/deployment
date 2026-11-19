@@ -1,0 +1,58 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment: production # required reviewers + master-only, secrets live here
+    timeout-minutes: 15
+    env:
+      BASTION_HOST: ${{ secrets.BASTION_HOST }}
+      BASTION_USER: ${{ secrets.BASTION_USER }}
+      BASTION_PASS: ${{ secrets.BASTION_PASS }}
+      BASTION_HOST_KEY: ${{ secrets.BASTION_HOST_KEY }}
+      VM_HOST: ${{ secrets.VM_HOST }}
+      VM_USER: ${{ secrets.VM_USER }}
+      VM_PASS: ${{ secrets.VM_PASS }}
+      VM_HOST_KEY: ${{ secrets.VM_HOST_KEY }}
+    steps:
+      - name: Install sshpass
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+
+      - name: Deploy via bastion
+        run: |
+          set -euo pipefail
+          umask 077
+          d="$RUNNER_TEMP/ssh"; mkdir -p "$d"
+          trap 'rm -rf "$d"' EXIT
+
+          printf '%s' "$BASTION_PASS" > "$d/bp"
+          printf '%s' "$VM_PASS"      > "$d/vp"
+          printf '%s\n' "$BASTION_HOST_KEY" "$VM_HOST_KEY" > "$d/known_hosts"
+
+          pw="-o PreferredAuthentications=password -o PubkeyAuthentication=no"
+          hk="-o UserKnownHostsFile=$d/known_hosts -o StrictHostKeyChecking=yes"
+          printf '%s\n' \
+            "Host vm" \
+            "  HostName $VM_HOST" \
+            "  User $VM_USER" \
+            "  ProxyCommand sshpass -f $d/bp ssh $pw $hk -W %h:%p $BASTION_USER@$BASTION_HOST" \
+            > "$d/config"
+
+          # shellcheck disable=SC2086
+          sshpass -f "$d/vp" ssh -F "$d/config" $pw $hk vm '
+            set -euo pipefail
+            cd /opt/deployment/docker-compose
+            docker compose pull
+            docker compose up -d
+            docker compose restart nginx
+            docker image prune -af
+          '
