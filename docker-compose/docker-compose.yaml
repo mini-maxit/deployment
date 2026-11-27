@@ -89,6 +89,7 @@ services:
       - WORKER_QUEUE_NAME=${WORKER_QUEUE_NAME}
       - STORAGE_HOST=${FILE_STORAGE_HOST}
       - STORAGE_PORT=${FILE_STORAGE_PORT}
+      - MAX_WORKERS=${MAX_WORKERS:-3}
   frontend:
     image: ghcr.io/mini-maxit/frontend:latest
     depends_on:
