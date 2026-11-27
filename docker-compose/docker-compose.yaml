@@ -16,7 +16,7 @@ services:
       - file-storage
     restart: unless-stopped
   rabbitmq:
-    image: rabbitmq:4.4.0-management
+    image: rabbitmq:4.4.1-management
     environment:
       - RABBITMQ_DEFAULT_USER=${QUEUE_USER}
       - RABBITMQ_DEFAULT_PASS=${QUEUE_PASSWORD}
